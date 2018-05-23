@@ -1,0 +1,198 @@
+.libPaths("E:/studying/4thYear/SecondSemister/bigData/analysis/lib")
+setwd( "E:/studying/4thYear/SecondSemister/bigData/analysis" )
+
+
+library(dplyr) #Data manipulation
+library(plyr) #data manipulation
+library(ggplot2) #For graph plotting
+library(corrplot) #for correlation plot
+library(gridExtra) #For multiple plots
+################################# Data preparation #################################
+data(diamonds)     # Load the diamonds dataset
+?diamonds          # View documentation for diamonds
+dm<-cbind(diamonds)
+na <- colSums(is.na(dm)) #Check the missing values in the dataset column-wise
+na  #No missing values in the dataset
+
+#Check the levels of color
+levels(dm$color) 
+#Revalue the colors column
+dm$color <- revalue(dm$color,c("D"=1,"E"=2,"F"=3,"G"=4,"H"=5,"I"=6,"J"=7))
+qplot(x = color, data = dm)
+
+#Check the levels of clarity
+levels(dm$clarity)#(I1 (worst), SI2, SI1, VS2, VS1, VVS2, VVS1, IF (best))
+
+dm$clarity <- revalue(dm$clarity,c("I1"=1,"IF"=2,"SI1"=3,"SI2"=4,"VS1"=5,"VS2"=6,"VVS1"=7, "VVS2"=8))
+qplot(x = clarity, data = dm)
+
+
+#Check the levels of cut
+levels(dm$cut)
+dm$cut <- revalue(dm$cut,c("Fair"=1,"Good"=2,"Ideal"=3,"Premium"=4,"Very Good"=5))
+qplot(x = cut, data = dm)
+
+#######################################     EDA   ###############################
+
+
+#expolering each observation
+# price distripution 
+plot1 <- ggplot(dm2, aes(x = price)) + 
+  geom_histogram(color = "black", fill = "DarkOrange", binwidth = 500) + 
+  scale_x_continuous( breaks = seq(0, 20000, 1000)) + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  xlab("Price") + ylab("Diamonds Count")
+
+plot2 <- ggplot(dm2, aes(x = price)) + 
+  geom_histogram(color = "black", fill = "DarkOrange", binwidth = 25) + 
+  scale_x_continuous( breaks = seq(0, 2000, 100)) + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  coord_cartesian(c(0,2000)) +
+  xlab("Price") + ylab("Diamonds Count")
+grid.arrange(plot1,plot2)
+
+
+
+
+# carat distripution 
+
+plot3 <- ggplot(dm2, aes(x = carat)) + 
+  geom_histogram(color = "black", fill = "DarkOrange") + 
+  scale_x_continuous( breaks = seq(0, 5, 0.5)) + 
+  theme(axis.text.x = element_text(angle = 90)) + 
+  xlab("carat") + ylab("Diamonds Count")  +  coord_cartesian(xlim = c(0,3))
+
+plot4 <- ggplot(dm2, aes(x = carat)) + 
+  geom_histogram(color = "black", fill = "DarkOrange") + 
+  scale_x_log10(breaks = seq(0.5, 5, 1)) + 
+  xlab("carat") + ylab("Diamonds Count")
+grid.arrange(plot3,plot4)
+
+
+
+#cut
+qplot(x = cut, data = dm)
+
+
+#X 
+qplot(x = x, data = dm)
+#Detecting outliers on X 
+#getting the summary of X 
+summary(dm$x)
+#detecting any 0 value for x,y,z 
+dm2 <- subset(diamonds, !(x <= 0 | y <= 0 | z <= 0))
+summary(dm2$x)
+
+
+#Plotting Y 
+qplot(x =log(y) , data = dm2)
+#Plotting z 
+qplot(x =log(z) , data = dm2)
+
+#plotting depth 
+qplot(x = depth, data = dm2)
+#plotting table 
+qplot(x = table, data = dm2)
+
+dm2$color<-as.numeric(dm2$color)
+dm2$clarity<-as.numeric(dm2$clarity)
+dm2$cut<-as.numeric(dm2$cut)
+
+
+
+# cart Vs Price 
+with(dm2, plot(carat, price))
+cor(dm2$carat,dm2$price)
+#0.9215921
+
+
+# 0.9215921 positive correlation 
+#X vs Price
+with(dm2, plot(x, price))
+cor(dm2$x,dm2$price)
+# 0.8872314
+
+# Depth Vs Price 
+with(dm2, plot(depth, price))
+cor(dm2$depth,dm2$price)
+#-0.01072892
+
+#add volume to data set
+dm2 <- dm2 %>%
+  mutate(volume=x*y*z)
+
+volume <- dm2$x * dm2$y * dm2$z
+with(dm2, plot(volume, price))
+cor(vol,dm2$price)
+# 0.9042547
+
+#color vs Price /carat
+ggplot(aes(x = carat, y = price, color = color), data = diamonds) + 
+       geom_point(alpha = 0.5, size = 1, position = 'jitter') +
+       scale_color_brewer(type = 'div',
+       guide = guide_legend(title = 'Color', reverse = F,
+      override.aes = list(alpha = 1, size = 2))) +  
+       scale_x_continuous( limits = c(0.2, 3),breaks = c(0.2, 0.5, 1, 2, 3))
+      + 
+      scale_y_continuous( limits = c(350, 15000), breaks = c(350, 1000, 5000, 10000, 15000)) +
+       ggtitle('Price (log10) and Color')
+
+#Correlations
+cor(dm2$color,dm2$price)
+#0.1724306
+
+
+
+#clarity Vs Price/Carat 
+ggplot(aes(x = carat, y = price, color = clarity), data = diamonds) + 
+  geom_point(alpha = 0.5, size = 1, position = 'jitter') +
+  scale_color_brewer(type = 'div',
+                     guide = guide_legend(title = 'clarity', reverse = F,
+                                          override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous( limits = c(0.2, 3),breaks = c(0.2, 0.5, 1, 2, 3))
++ 
+  scale_y_continuous( limits = c(350, 15000), breaks = c(350, 1000, 5000, 10000, 15000)) 
+
+cor(dm2$clarity,dm2$price)
+#-0.1467892
+
+
+#cut Vs Price/Carat
+ggplot(aes(x = carat, y = price, color = cut), data = diamonds) + 
+  geom_point(alpha = 0.5, size = 1, position = 'jitter') +
+  scale_color_brewer(type = 'div',
+                     guide = guide_legend(title = 'Cut', reverse = T,
+                                          override.aes = list(alpha = 1, size = 2))) +  
+  scale_x_continuous( limits = c(0.2, 3),
+                     breaks = c(0.2, 0.5, 1, 2, 3)) + 
+  scale_y_continuous( limits = c(350, 15000),
+                     breaks = c(350, 1000, 5000, 10000, 15000)) 
+
+
+
+# for all correlations 
+ggpairs(data=dm2, # data.frame with variables
+        +         columns=1:8, # columns to plot, default to all.
+        +         title="Diamonds Correlations", # title of the plot
+        +         colour = "sex") # aesthetics, ggplot2 style
+
+
+
+########################## LINEAR MODEL  ######################################
+
+
+ set.seed(100)
+ trainingRowIndex <-sample(1:nrow(dm2),0.8*nrow(dm2))
+ trainingData <- dm2[trainingRowIndex,]
+ testData <- dm2[-trainingRowIndex,]
+ volume<-trainingData$x*trainingData$y*trainingData$z
+ lmMod <- lm(trainingData$price~trainingData$carat+volume)
+ lmMod 
+ pricePred <- predict(lmMod, testData)
+ 
+ 
+  fit <- lm(dm2$price ~dm2$carat+dm2$volume)
+  p<- fit$coefficients[1] + fit$coefficients[2]*2 + fit$coefficients[3]*0.23 
+  p
+ 
+ 
